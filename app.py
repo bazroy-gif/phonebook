@@ -1,3 +1,6 @@
+إليك الكود كاملاً بعد تصحيح خطأ حقل البحث (`e.control.value`) ليعمل بدون أي أخطاء:
+
+```python
 import flet as ft
 import requests
 import json
@@ -164,10 +167,11 @@ def main(page: ft.Page):
     name_field = ft.TextField(label="Person Name", border=ft.InputBorder.OUTLINE)
     address_field = ft.TextField(label="Address (Optional)", border=ft.InputBorder.OUTLINE)
     
+    # تم تصحيح هنا واستخدام e.control.value بدلاً من e.value
     search_field = ft.TextField(
         label="Search by Name or ID...", 
         border=ft.InputBorder.OUTLINE, 
-        on_change=lambda e: filter_contacts(e.value)
+        on_change=lambda e: filter_contacts(e.control.value)
     )
 
     phones_column = ft.Column()
@@ -202,7 +206,6 @@ def main(page: ft.Page):
                 data = response.json()
                 all_contacts_cache = [{"key": k, **v} for k, v in data.items()]
             else:
-                # إذا كانت القاعدة فارغة، نقوم بتعبئتها تلقائياً بالأسماء التي أرسلتها
                 all_contacts_cache = []
                 for item in initial_contacts:
                     c_id = str(item["id"]).strip()
@@ -215,7 +218,6 @@ def main(page: ft.Page):
                     requests.put(f"{DATABASE_URL}/{c_id}.json", data=json.dumps(c_data), verify=False)
                     all_contacts_cache.append(c_data)
 
-            # ترتيب الأرقام تصاعدياً حسب الـ ID
             try:
                 all_contacts_cache.sort(key=lambda x: int(str(x.get("id", 0)).strip()))
             except:
@@ -317,3 +319,5 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 8000))
     ft.app(target=main, port=port, host="0.0.0.0")
+
+```
