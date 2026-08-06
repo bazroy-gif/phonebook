@@ -1,6 +1,4 @@
-إليك الكود كاملاً بعد تصحيح خطأ حقل البحث (`e.control.value`) ليعمل بدون أي أخطاء:
-
-```python
+import flet as ft
 import requests
 import json
 import urllib3
@@ -166,7 +164,6 @@ def main(page: ft.Page):
     name_field = ft.TextField(label="Person Name", border=ft.InputBorder.OUTLINE)
     address_field = ft.TextField(label="Address (Optional)", border=ft.InputBorder.OUTLINE)
     
-    # تم تصحيح هنا واستخدام e.control.value بدلاً من e.value
     search_field = ft.TextField(
         label="Search by Name or ID...", 
         border=ft.InputBorder.OUTLINE, 
@@ -318,5 +315,3 @@ if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 8000))
     ft.app(target=main, port=port, host="0.0.0.0")
-
-```
