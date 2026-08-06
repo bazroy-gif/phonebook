@@ -1,3 +1,4 @@
+```python
 import flet as ft
 import requests
 import json
@@ -316,4 +317,6 @@ def main(page: ft.Page):
 if __name__ == "__main__":
     import os
     port = int(os.environ.get("PORT", 8000))
-    ft.app(target=main, view=ft.WEB_BROWSER, port=port, host="0.0.0.0")
+    ft.app(target=main, port=port, host="0.0.0.0")
+
+```
