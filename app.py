@@ -5,23 +5,23 @@ import urllib3
 
 urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
-# تم ربط قاعدة بيانات Firebase الخاصة بك بنجاح
+# ربط قاعدة بيانات Firebase الخاصة بك
 DATABASE_URL = "https://phonebook-44782-default-rtdb.firebaseio.com/contacts"
 
 def main(page: ft.Page):
-    page.title = "دليل الهواتف السحابي"
+    page.title = "Cloud Phonebook Directory"
     page.vertical_alignment = ft.MainAxisAlignment.START
     page.scroll = ft.ScrollMode.AUTO
-    page.rtl = True
+    page.rtl = False  # تم تحويل الاتجاه إلى الإنجليزية (من اليسار لليمين)
     page.window_width = 450
     page.window_height = 700
 
-    id_field = ft.TextField(label="رقم الـ ID (الرقم التسلسلي)", border=ft.InputBorder.OUTLINE)
-    name_field = ft.TextField(label="اسم الشخص", border=ft.InputBorder.OUTLINE)
-    address_field = ft.TextField(label="العنوان (اختياري)", border=ft.InputBorder.OUTLINE)
+    id_field = ft.TextField(label="ID Number (Serial)", border=ft.InputBorder.OUTLINE)
+    name_field = ft.TextField(label="Person Name", border=ft.InputBorder.OUTLINE)
+    address_field = ft.TextField(label="Address (Optional)", border=ft.InputBorder.OUTLINE)
     
     search_field = ft.TextField(
-        label="ابحث هنا بالاسم أو برقم الـ ID...", 
+        label="Search by Name or ID...", 
         border=ft.InputBorder.OUTLINE, 
         on_change=lambda e: filter_contacts(e.value)
     )
@@ -40,7 +40,7 @@ def main(page: ft.Page):
 
     def add_phone_field(e=None):
         phone_input = ft.TextField(
-            label=f"رقم الهاتف {len(phone_fields) + 1}",
+            label=f"Phone Number {len(phone_fields) + 1}",
             keyboard_type=ft.KeyboardType.PHONE,
             border=ft.InputBorder.OUTLINE
         )
@@ -58,7 +58,7 @@ def main(page: ft.Page):
                 data = response.json()
                 all_contacts_cache = [{"key": k, **v} for k, v in data.items()]
                 
-                # ترتيب الأرقام تصاعدياً حسب الـ ID من الأصغر للأكبر
+                # ترتيب الأرقام تصاعدياً حسب الـ ID
                 try:
                     all_contacts_cache.sort(key=lambda x: int(str(x.get("id", 0)).strip()))
                 except:
@@ -66,7 +66,7 @@ def main(page: ft.Page):
             else:
                 all_contacts_cache = []
         except Exception as ex:
-            print("خطأ في الاتصال:", ex)
+            print("Connection Error:", ex)
             all_contacts_cache = []
         
         display_contacts(all_contacts_cache)
@@ -74,7 +74,7 @@ def main(page: ft.Page):
     def display_contacts(contacts):
         results_column.controls.clear()
         if not contacts:
-            results_column.controls.append(ft.Text("لا توجد نتائج مسجلة في الدفتر السحابي."))
+            results_column.controls.append(ft.Text("No records found in the cloud directory."))
         else:
             for c in contacts:
                 phones_str = " | ".join(c.get("phones", []))
@@ -83,11 +83,11 @@ def main(page: ft.Page):
                         padding=12,
                         content=ft.Column([
                             ft.Row([
-                                ft.Text(f"الاسم: {c.get('name')}", weight=ft.FontWeight.BOLD, size=16),
+                                ft.Text(f"Name: {c.get('name')}", weight=ft.FontWeight.BOLD, size=16),
                                 ft.Text(f"ID: {c.get('id')}", weight=ft.FontWeight.BOLD),
                             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                            ft.Text(f"العنوان: {c.get('address', 'غير متوفر')}"),
-                            ft.Text(f"الأرقام: {phones_str}"),
+                            ft.Text(f"Address: {c.get('address', 'N/A')}"),
+                            ft.Text(f"Phones: {phones_str if phones_str else 'No Phone Number'}"),
                         ])
                     )
                 )
@@ -108,7 +108,7 @@ def main(page: ft.Page):
 
     def save_contact(e):
         if not id_field.value or not name_field.value:
-            show_message("الرجاء إدخال رقم الـ (ID) واسم الشخص على الأقل!")
+            show_message("Please enter both ID and Name at least!")
             return
 
         all_phones = [p.value for p in phone_fields if p.value]
@@ -126,7 +126,7 @@ def main(page: ft.Page):
         try:
             response = requests.put(url, data=json.dumps(new_contact), verify=False)
             if response.status_code == 200:
-                show_message("تم الحفظ والتحديث في السحابة بنجاح!")
+                show_message("Saved and updated in the cloud successfully!")
                 id_field.value = ""
                 name_field.value = ""
                 address_field.value = ""
@@ -135,26 +135,29 @@ def main(page: ft.Page):
                 add_phone_field()
                 fetch_contacts()
             else:
-                show_message("فشل الحفظ في السحابة!")
+                show_message("Failed to save in the cloud!")
         except Exception as ex:
-            show_message(f"خطأ: {ex}")
+            show_message(f"Error: {ex}")
 
     page.add(
-        ft.Text("📖 دفتر الهواتف السحابي المشترك", size=18, weight=ft.FontWeight.BOLD),
+        ft.Text("📖 Shared Cloud Phonebook", size=18, weight=ft.FontWeight.BOLD),
         search_field,
         ft.Divider(),
         id_field,
         name_field,
         address_field,
-        ft.Text("أرقام الهواتف:", weight=ft.FontWeight.BOLD),
+        ft.Text("Phone Numbers:", weight=ft.FontWeight.BOLD),
         phones_column,
-        ft.TextButton(content=ft.Text("[+] إضافة رقم هاتف آخر"), on_click=add_phone_field),
-        ft.ElevatedButton(content=ft.Text("حفظ أو تعديل في الدفتر"), on_click=save_contact),
+        ft.TextButton(content=ft.Text("[+] Add Another Phone Number"), on_click=add_phone_field),
+        ft.ElevatedButton(content=ft.Text("Save or Update in Directory"), on_click=save_contact),
         ft.Divider(),
-        ft.Text("📋 قائمة الأرقام (مرتبة حسب الـ ID):", weight=ft.FontWeight.BOLD),
+        ft.Text("📋 Contacts List (Sorted by ID):", weight=ft.FontWeight.BOLD),
         results_column
     )
 
     fetch_contacts()
 
-ft.app(target=main)
+if __name__ == "__main__":
+    import os
+    port = int(os.environ.get("PORT", 8000))
+    ft.app(target=main, view=ft.WEB_BROWSER, port=port, host="0.0.0.0")
