@@ -152,12 +152,12 @@ initial_contacts = [
 ]
 
 def main(page: ft.Page):
-    page.title = "Cloud Phonebook Directory"
+    page.title = "Cloud Phonebook - Sheet View"
     page.vertical_alignment = ft.MainAxisAlignment.START
     page.scroll = ft.ScrollMode.AUTO
     page.rtl = False  
-    page.window_width = 450
-    page.window_height = 700
+    page.window_width = 550
+    page.window_height = 750
 
     id_field = ft.TextField(label="ID Number (Serial)", border=ft.InputBorder.OUTLINE)
     name_field = ft.TextField(label="Person Name", border=ft.InputBorder.OUTLINE)
@@ -173,7 +173,22 @@ def main(page: ft.Page):
     phone_fields = []
     
     all_contacts_cache = []
-    results_column = ft.Column(scroll=ft.ScrollMode.AUTO, height=240)
+    
+    # تمت إضافة عمود Address هنا
+    data_table = ft.DataTable(
+        columns=[
+            ft.DataColumn(ft.Text("ID", weight=ft.FontWeight.BOLD)),
+            ft.DataColumn(ft.Text("Name", weight=ft.FontWeight.BOLD)),
+            ft.DataColumn(ft.Text("Address", weight=ft.FontWeight.BOLD)),
+            ft.DataColumn(ft.Text("Phones", weight=ft.FontWeight.BOLD)),
+        ],
+        rows=[]
+    )
+    
+    table_container = ft.Row(
+        controls=[data_table],
+        scroll=ft.ScrollMode.AUTO,
+    )
 
     def show_message(text_msg):
         snack = ft.SnackBar(content=ft.Text(text_msg))
@@ -254,31 +269,32 @@ def main(page: ft.Page):
         display_contacts(all_contacts_cache)
 
     def display_contacts(contacts):
-        results_column.controls.clear()
+        data_table.rows.clear()
         if not contacts:
-            results_column.controls.append(ft.Text("No records found in the cloud directory."))
+            data_table.rows.append(
+                ft.DataRow(cells=[
+                    ft.DataCell(ft.Text("-")),
+                    ft.DataCell(ft.Text("No records found.")),
+                    ft.DataCell(ft.Text("-")),
+                    ft.DataCell(ft.Text("-"))
+                ])
+            )
         else:
             for c in contacts:
                 phones_list = c.get("phones", [])
-                phones_str = " | ".join(p for p in phones_list if p) if phones_list else "No Phone Number"
+                phones_str = " | ".join(p for p in phones_list if p) if phones_list else "No Phone"
+                address_str = c.get("address", "") or "-"
                 
-                card = ft.Card(
-                    content=ft.Container(
-                        padding=12,
-                        ink=True,
-                        on_click=lambda e, contact=c: load_contact_for_edit(contact),
-                        content=ft.Column([
-                            ft.Row([
-                                ft.Text(f"Name: {c.get('name')}", weight=ft.FontWeight.BOLD, size=15),
-                                ft.Text(f"ID: {c.get('id')}", weight=ft.FontWeight.BOLD, color="blue"),
-                            ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                            ft.Text(f"Address: {c.get('address', 'N/A')}", size=12, color="grey"),
-                            ft.Text(f"Phones: {phones_str}", size=13),
-                            ft.Text("👆 Click to Edit", size=10, italic=True, color="orange"),
-                        ])
-                    )
+                row = ft.DataRow(
+                    on_select_change=lambda e, contact=c: load_contact_for_edit(contact),
+                    cells=[
+                        ft.DataCell(ft.Text(str(c.get('id', '')))),
+                        ft.DataCell(ft.Text(str(c.get('name', '')))),
+                        ft.DataCell(ft.Text(address_str)),
+                        ft.DataCell(ft.Text(phones_str)),
+                    ]
                 )
-                results_column.controls.append(card)
+                data_table.rows.append(row)
         page.update()
 
     def filter_contacts(query):
@@ -289,7 +305,7 @@ def main(page: ft.Page):
         
         filtered = [
             c for c in all_contacts_cache 
-            if query in str(c.get('id', '')).lower() or query in c.get('name', '').lower()
+            if query in str(c.get('id', '')).lower() or query in c.get('name', '').lower() or query in c.get('address', '').lower()
         ]
         display_contacts(filtered)
 
@@ -322,7 +338,7 @@ def main(page: ft.Page):
             show_message(f"Error: {ex}")
 
     page.add(
-        ft.Text("📖 Shared Cloud Phonebook (Edit Ready)", size=18, weight=ft.FontWeight.BOLD),
+        ft.Text("📊 Cloud Phonebook (Excel Sheet View)", size=18, weight=ft.FontWeight.BOLD),
         search_field,
         ft.Divider(),
         id_field,
@@ -332,17 +348,16 @@ def main(page: ft.Page):
         phones_column,
         ft.Row([
             ft.TextButton(content=ft.Text("[+] Add Another Phone"), on_click=lambda e: add_phone_field()),
-            # تم تعديل زر الإلغاء هنا باستخدام style لتجنب الخطأ
             ft.TextButton(
                 content=ft.Text("❌ Clear / New"), 
                 on_click=lambda e: clear_form(), 
                 style=ft.ButtonStyle(color="red")
             ),
         ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-        ft.ElevatedButton(content=ft.Text("Save or Update in Directory"), on_click=save_contact, width=400),
+        ft.ElevatedButton(content=ft.Text("Save or Update in Directory"), on_click=save_contact, width=500),
         ft.Divider(),
-        ft.Text("📋 Contacts List (Click any card to edit):", weight=ft.FontWeight.BOLD),
-        results_column
+        ft.Text("📋 Spreadsheet Grid (Click any row to edit):", size=13, italic=True),
+        table_container
     )
 
     fetch_contacts()
