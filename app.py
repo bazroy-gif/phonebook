@@ -8,7 +8,6 @@ urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 # ربط قاعدة بيانات Firebase الخاصة بك
 DATABASE_URL = "https://phonebook-44782-default-rtdb.firebaseio.com/contacts"
 
-# قائمة الأسماء والهويات والأرقام التي أرسلتها لضمان وجودها وتحديثها
 initial_contacts = [
     {"name": "صباح التنوري", "id": "30930", "phone": "4984236"},
     {"name": "أرملة فرج الريس", "id": "22536", "phone": "3659349"},
@@ -156,7 +155,7 @@ def main(page: ft.Page):
     page.title = "Cloud Phonebook Directory"
     page.vertical_alignment = ft.MainAxisAlignment.START
     page.scroll = ft.ScrollMode.AUTO
-    page.rtl = False  # اتجاه إنجليزي من اليسار لليمين
+    page.rtl = False  
     page.window_width = 450
     page.window_height = 700
 
@@ -174,7 +173,7 @@ def main(page: ft.Page):
     phone_fields = []
     
     all_contacts_cache = []
-    results_column = ft.Column(scroll=ft.ScrollMode.AUTO, height=260)
+    results_column = ft.Column(scroll=ft.ScrollMode.AUTO, height=240)
 
     def show_message(text_msg):
         snack = ft.SnackBar(content=ft.Text(text_msg))
@@ -182,9 +181,10 @@ def main(page: ft.Page):
         snack.open = True
         page.update()
 
-    def add_phone_field(e=None):
+    def add_phone_field(val=""):
         phone_input = ft.TextField(
             label=f"Phone Number {len(phone_fields) + 1}",
+            value=val,
             keyboard_type=ft.KeyboardType.PHONE,
             border=ft.InputBorder.OUTLINE
         )
@@ -193,6 +193,35 @@ def main(page: ft.Page):
         page.update()
 
     add_phone_field()
+
+    def clear_form():
+        id_field.value = ""
+        id_field.read_only = False
+        name_field.value = ""
+        address_field.value = ""
+        phone_fields.clear()
+        phones_column.controls.clear()
+        add_phone_field()
+        page.update()
+
+    def load_contact_for_edit(c):
+        id_field.value = str(c.get("id", ""))
+        id_field.read_only = True
+        name_field.value = c.get("name", "")
+        address_field.value = c.get("address", "")
+        
+        phone_fields.clear()
+        phones_column.controls.clear()
+        
+        phones = c.get("phones", [])
+        if phones:
+            for p in phones:
+                add_phone_field(p)
+        else:
+            add_phone_field()
+            
+        show_message(f"Loaded '{c.get('name')}' for editing.")
+        page.update()
 
     def fetch_contacts():
         nonlocal all_contacts_cache
@@ -232,16 +261,20 @@ def main(page: ft.Page):
             for c in contacts:
                 phones_list = c.get("phones", [])
                 phones_str = " | ".join(p for p in phones_list if p) if phones_list else "No Phone Number"
+                
                 card = ft.Card(
                     content=ft.Container(
                         padding=12,
+                        ink=True,
+                        on_click=lambda e, contact=c: load_contact_for_edit(contact),
                         content=ft.Column([
                             ft.Row([
-                                ft.Text(f"Name: {c.get('name')}", weight=ft.FontWeight.BOLD, size=16),
-                                ft.Text(f"ID: {c.get('id')}", weight=ft.FontWeight.BOLD),
+                                ft.Text(f"Name: {c.get('name')}", weight=ft.FontWeight.BOLD, size=15),
+                                ft.Text(f"ID: {c.get('id')}", weight=ft.FontWeight.BOLD, color="blue"),
                             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
-                            ft.Text(f"Address: {c.get('address', 'N/A')}"),
-                            ft.Text(f"Phones: {phones_str}"),
+                            ft.Text(f"Address: {c.get('address', 'N/A')}", size=12, color="grey"),
+                            ft.Text(f"Phones: {phones_str}", size=13),
+                            ft.Text("👆 Click to Edit", size=10, italic=True, color="orange"),
                         ])
                     )
                 )
@@ -280,13 +313,8 @@ def main(page: ft.Page):
         try:
             response = requests.put(url, data=json.dumps(new_contact), verify=False)
             if response.status_code == 200:
-                show_message("Saved and updated in the cloud successfully!")
-                id_field.value = ""
-                name_field.value = ""
-                address_field.value = ""
-                phone_fields.clear()
-                phones_column.controls.clear()
-                add_phone_field()
+                show_message("Saved/Updated successfully in the cloud!")
+                clear_form()
                 fetch_contacts()
             else:
                 show_message("Failed to save in the cloud!")
@@ -294,7 +322,7 @@ def main(page: ft.Page):
             show_message(f"Error: {ex}")
 
     page.add(
-        ft.Text("📖 Shared Cloud Phonebook", size=18, weight=ft.FontWeight.BOLD),
+        ft.Text("📖 Shared Cloud Phonebook (Edit Ready)", size=18, weight=ft.FontWeight.BOLD),
         search_field,
         ft.Divider(),
         id_field,
@@ -302,10 +330,18 @@ def main(page: ft.Page):
         address_field,
         ft.Text("Phone Numbers:", weight=ft.FontWeight.BOLD),
         phones_column,
-        ft.TextButton(content=ft.Text("[+] Add Another Phone Number"), on_click=add_phone_field),
-        ft.ElevatedButton(content=ft.Text("Save or Update in Directory"), on_click=save_contact),
+        ft.Row([
+            ft.TextButton(content=ft.Text("[+] Add Another Phone"), on_click=lambda e: add_phone_field()),
+            # تم تعديل زر الإلغاء هنا باستخدام style لتجنب الخطأ
+            ft.TextButton(
+                content=ft.Text("❌ Clear / New"), 
+                on_click=lambda e: clear_form(), 
+                style=ft.ButtonStyle(color="red")
+            ),
+        ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN),
+        ft.ElevatedButton(content=ft.Text("Save or Update in Directory"), on_click=save_contact, width=400),
         ft.Divider(),
-        ft.Text("📋 Contacts List (Sorted by ID):", weight=ft.FontWeight.BOLD),
+        ft.Text("📋 Contacts List (Click any card to edit):", weight=ft.FontWeight.BOLD),
         results_column
     )
 
